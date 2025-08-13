@@ -68,7 +68,7 @@ class FPSGame {
     }
     
     createEnvironment() {
-        const groundGeometry = new THREE.PlaneGeometry(200, 200);
+        const groundGeometry = new THREE.PlaneGeometry(300, 300);
         const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
@@ -77,7 +77,7 @@ class FPSGame {
         
         const wallHeight = 10;
         const wallThickness = 1;
-        const arenaSize = 50;
+        const arenaSize = 80;
         
         const wallMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
         
@@ -97,14 +97,14 @@ class FPSGame {
             this.scene.add(mesh);
         });
         
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 15; i++) {
             const boxGeometry = new THREE.BoxGeometry(2, 2, 2);
             const boxMaterial = new THREE.MeshLambertMaterial({ color: Math.random() * 0xffffff });
             const box = new THREE.Mesh(boxGeometry, boxMaterial);
             box.position.set(
-                (Math.random() - 0.5) * 40,
+                (Math.random() - 0.5) * 70,
                 1,
-                (Math.random() - 0.5) * 40
+                (Math.random() - 0.5) * 70
             );
             box.castShadow = true;
             box.receiveShadow = true;
@@ -173,15 +173,15 @@ class FPSGame {
     }
     
     createTargets() {
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < 12; i++) {
             const targetGeometry = new THREE.SphereGeometry(0.5, 16, 16);
             const targetMaterial = new THREE.MeshLambertMaterial({ color: 0xff0000 });
             const target = new THREE.Mesh(targetGeometry, targetMaterial);
             
             target.position.set(
-                (Math.random() - 0.5) * 40,
+                (Math.random() - 0.5) * 70,
                 Math.random() * 5 + 1,
-                (Math.random() - 0.5) * 40
+                (Math.random() - 0.5) * 70
             );
             
             target.castShadow = true;
@@ -396,9 +396,9 @@ class FPSGame {
         const target = new THREE.Mesh(targetGeometry, targetMaterial);
         
         target.position.set(
-            (Math.random() - 0.5) * 40,
+            (Math.random() - 0.5) * 70,
             Math.random() * 5 + 1,
-            (Math.random() - 0.5) * 40
+            (Math.random() - 0.5) * 70
         );
         
         target.castShadow = true;
@@ -415,9 +415,9 @@ class FPSGame {
         this.velocity.x -= this.velocity.x * 10.0 * delta;
         this.velocity.z -= this.velocity.z * 10.0 * delta;
         
-        // Get input direction (fixed inverted controls)
+        // Get input direction (W=forward, S=back, A=left, D=right)
         this.direction.z = Number(this.keys['KeyW'] || false) - Number(this.keys['KeyS'] || false);
-        this.direction.x = Number(this.keys['KeyA'] || false) - Number(this.keys['KeyD'] || false);
+        this.direction.x = Number(this.keys['KeyD'] || false) - Number(this.keys['KeyA'] || false);
         
         // Only normalize if there's input
         if (this.direction.length() > 0) {
@@ -453,8 +453,8 @@ class FPSGame {
         // Keep camera at fixed height
         this.camera.position.y = 1.6;
         
-        // Boundary check
-        const boundary = 20;
+        // Boundary check (keep player within arena)
+        const boundary = 35;
         this.camera.position.x = Math.max(-boundary, Math.min(boundary, this.camera.position.x));
         this.camera.position.z = Math.max(-boundary, Math.min(boundary, this.camera.position.z));
     }
