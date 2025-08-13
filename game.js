@@ -24,8 +24,15 @@ class FPSGame {
         
         this.euler = new THREE.Euler(0, 0, 0, 'YXZ');
         
+        // Gun properties
+        this.gun = null;
+        this.gunGroup = new THREE.Group();
+        this.muzzleFlash = null;
+        this.isAiming = false;
+        
         this.init();
         this.createEnvironment();
+        this.createGun();
         this.createTargets();
         this.setupEventListeners();
         this.animate();
@@ -105,6 +112,66 @@ class FPSGame {
         }
     }
     
+    createGun() {
+        // Create gun body (main part)
+        const gunBodyGeometry = new THREE.BoxGeometry(0.1, 0.15, 0.8);
+        const gunBodyMaterial = new THREE.MeshLambertMaterial({ color: 0x2c2c2c });
+        const gunBody = new THREE.Mesh(gunBodyGeometry, gunBodyMaterial);
+        
+        // Create gun barrel
+        const barrelGeometry = new THREE.CylinderGeometry(0.02, 0.025, 0.3, 8);
+        const barrelMaterial = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+        const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial);
+        barrel.rotation.z = Math.PI / 2;
+        barrel.position.set(0, 0.05, -0.5);
+        
+        // Create gun handle
+        const handleGeometry = new THREE.BoxGeometry(0.08, 0.25, 0.15);
+        const handleMaterial = new THREE.MeshLambertMaterial({ color: 0x4a4a4a });
+        const handle = new THREE.Mesh(handleGeometry, handleMaterial);
+        handle.position.set(0, -0.15, 0.1);
+        
+        // Create trigger guard
+        const triggerGeometry = new THREE.TorusGeometry(0.04, 0.01, 8, 16, Math.PI);
+        const triggerMaterial = new THREE.MeshLambertMaterial({ color: 0x2c2c2c });
+        const trigger = new THREE.Mesh(triggerGeometry, triggerMaterial);
+        trigger.rotation.x = Math.PI / 2;
+        trigger.position.set(0, -0.05, 0.05);
+        
+        // Create scope/sight
+        const sightGeometry = new THREE.BoxGeometry(0.03, 0.03, 0.1);
+        const sightMaterial = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+        const sight = new THREE.Mesh(sightGeometry, sightMaterial);
+        sight.position.set(0, 0.1, -0.2);
+        
+        // Create muzzle flash (initially hidden)
+        const flashGeometry = new THREE.ConeGeometry(0.05, 0.15, 8);
+        const flashMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xffaa00, 
+            transparent: true, 
+            opacity: 0 
+        });
+        this.muzzleFlash = new THREE.Mesh(flashGeometry, flashMaterial);
+        this.muzzleFlash.rotation.z = -Math.PI / 2;
+        this.muzzleFlash.position.set(0, 0.05, -0.65);
+        
+        // Group all gun parts
+        this.gunGroup.add(gunBody);
+        this.gunGroup.add(barrel);
+        this.gunGroup.add(handle);
+        this.gunGroup.add(trigger);
+        this.gunGroup.add(sight);
+        this.gunGroup.add(this.muzzleFlash);
+        
+        // Position gun relative to camera
+        this.gunGroup.position.set(0.3, -0.3, -0.5);
+        this.gunGroup.rotation.y = -0.1;
+        
+        // Add gun to camera (so it moves with camera)
+        this.camera.add(this.gunGroup);
+        this.gun = this.gunGroup;
+    }
+    
     createTargets() {
         for (let i = 0; i < 8; i++) {
             const targetGeometry = new THREE.SphereGeometry(0.5, 16, 16);
@@ -144,8 +211,29 @@ class FPSGame {
             e.preventDefault();
             if (document.pointerLockElement !== this.renderer.domElement) {
                 this.renderer.domElement.requestPointerLock();
-            } else {
+            } else if (e.button === 0) { // Left click
                 this.shoot();
+            }
+        });
+        
+        // Right click for aiming
+        document.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+        
+        document.addEventListener('mousedown', (e) => {
+            if (document.pointerLockElement === this.renderer.domElement) {
+                if (e.button === 2) { // Right click
+                    this.startAiming();
+                }
+            }
+        });
+        
+        document.addEventListener('mouseup', (e) => {
+            if (document.pointerLockElement === this.renderer.domElement) {
+                if (e.button === 2) { // Right click release
+                    this.stopAiming();
+                }
             }
         });
         
@@ -180,11 +268,15 @@ class FPSGame {
         this.ammo--;
         this.updateUI();
         
+        // Create bullet
         const bulletGeometry = new THREE.SphereGeometry(0.05, 8, 8);
         const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
         const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
         
-        bullet.position.copy(this.camera.position);
+        // Spawn bullet from gun barrel position
+        const barrelPos = new THREE.Vector3(0, 0.05, -0.65);
+        barrelPos.applyMatrix4(this.gunGroup.matrixWorld);
+        bullet.position.copy(barrelPos);
         
         const direction = new THREE.Vector3(0, 0, -1);
         direction.applyQuaternion(this.camera.quaternion);
@@ -192,6 +284,34 @@ class FPSGame {
         
         this.bullets.push(bullet);
         this.scene.add(bullet);
+        
+        // Muzzle flash effect
+        if (this.muzzleFlash) {
+            this.muzzleFlash.material.opacity = 0.8;
+            setTimeout(() => {
+                if (this.muzzleFlash) {
+                    this.muzzleFlash.material.opacity = 0;
+                }
+            }, 50);
+        }
+        
+        // Gun recoil animation
+        if (this.gun) {
+            const originalPos = this.gun.position.clone();
+            const originalRot = this.gun.rotation.clone();
+            
+            // Recoil movement
+            this.gun.position.z += 0.05;
+            this.gun.rotation.x -= 0.05;
+            
+            // Return to original position
+            setTimeout(() => {
+                if (this.gun) {
+                    this.gun.position.copy(originalPos);
+                    this.gun.rotation.copy(originalRot);
+                }
+            }, 80);
+        }
         
         this.canShoot = false;
         setTimeout(() => this.canShoot = true, 100);
@@ -202,6 +322,30 @@ class FPSGame {
             this.ammo = this.maxAmmo;
             this.updateUI();
         }
+    }
+    
+    startAiming() {
+        this.isAiming = true;
+        if (this.gun) {
+            // Move gun closer and center it for aiming
+            this.gun.position.set(0, -0.15, -0.3);
+            this.gun.rotation.set(0, 0, 0);
+        }
+        // Reduce FOV for zoom effect
+        this.camera.fov = 45;
+        this.camera.updateProjectionMatrix();
+    }
+    
+    stopAiming() {
+        this.isAiming = false;
+        if (this.gun) {
+            // Return gun to hip position
+            this.gun.position.set(0.3, -0.3, -0.5);
+            this.gun.rotation.y = -0.1;
+        }
+        // Restore normal FOV
+        this.camera.fov = 75;
+        this.camera.updateProjectionMatrix();
     }
     
     updateBullets(delta) {
@@ -271,9 +415,9 @@ class FPSGame {
         this.velocity.x -= this.velocity.x * 10.0 * delta;
         this.velocity.z -= this.velocity.z * 10.0 * delta;
         
-        // Get input direction
+        // Get input direction (fixed inverted controls)
         this.direction.z = Number(this.keys['KeyW'] || false) - Number(this.keys['KeyS'] || false);
-        this.direction.x = Number(this.keys['KeyD'] || false) - Number(this.keys['KeyA'] || false);
+        this.direction.x = Number(this.keys['KeyA'] || false) - Number(this.keys['KeyD'] || false);
         
         // Only normalize if there's input
         if (this.direction.length() > 0) {

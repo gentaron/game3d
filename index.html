@@ -24,8 +24,8 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 20px;
-            height: 20px;
+            width: 30px;
+            height: 30px;
             pointer-events: none;
             z-index: 100;
         }
@@ -34,23 +34,36 @@
         #crosshair::after {
             content: '';
             position: absolute;
-            background: white;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
         }
         
         #crosshair::before {
             top: 50%;
-            left: 0;
-            width: 100%;
-            height: 2px;
+            left: 20%;
+            width: 60%;
+            height: 1px;
             transform: translateY(-50%);
         }
         
         #crosshair::after {
             left: 50%;
-            top: 0;
-            width: 2px;
-            height: 100%;
+            top: 20%;
+            width: 1px;
+            height: 60%;
             transform: translateX(-50%);
+        }
+        
+        /* Add center dot */
+        #crosshair .center-dot {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
         }
         
         #ui {
@@ -76,13 +89,15 @@
 </head>
 <body>
     <div id="gameContainer">
-        <div id="crosshair"></div>
+        <div id="crosshair">
+            <div class="center-dot"></div>
+        </div>
         <div id="ui">
             <div>Score: <span id="score">0</span></div>
             <div>Ammo: <span id="ammo">30</span></div>
         </div>
         <div id="instructions">
-            WASD: Move | Mouse: Look | Click: Shoot | R: Reload
+            WASD: Move | Mouse: Look | Left Click: Shoot | Right Click: Aim | R: Reload
         </div>
     </div>
     
